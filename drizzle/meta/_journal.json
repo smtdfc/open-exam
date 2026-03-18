@@ -36,6 +36,13 @@
       "when": 1779006600000,
       "tag": "0004_utf8mb4_charset",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1779033600000,
+      "tag": "0005_query_indexes",
+      "breakpoints": true
     }
   ]
 }

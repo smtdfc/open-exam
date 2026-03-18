@@ -7,7 +7,7 @@ import {
   exams,
 } from "@/db/schema";
 import { getServerSession } from "@/lib/session";
-import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 
@@ -109,33 +109,51 @@ export async function POST(
   const isAutoSubmitted = Boolean(body.monitoring?.isAutoSubmitted);
   const submissionReason = body.monitoring?.submissionReason?.trim() || null;
 
-  const questionRows = await db
+  const questionOptionRows = await db
     .select({
-      id: examQuestions.id,
-      type: examQuestions.type,
-      points: examQuestions.points,
+      questionId: examQuestions.id,
+      questionType: examQuestions.type,
+      questionPoints: examQuestions.points,
+      optionId: examOptions.id,
+      optionQuestionId: examOptions.questionId,
+      optionIsCorrect: examOptions.isCorrect,
     })
     .from(examQuestions)
+    .leftJoin(examOptions, eq(examOptions.questionId, examQuestions.id))
     .where(eq(examQuestions.examId, exam.id));
 
-  const questionIds = questionRows.map((question) => question.id);
-  const optionRows =
-    questionIds.length > 0
-      ? await db
-          .select({
-            id: examOptions.id,
-            questionId: examOptions.questionId,
-            isCorrect: examOptions.isCorrect,
-          })
-          .from(examOptions)
-          .where(inArray(examOptions.questionId, questionIds))
-      : [];
+  const questionMap = new Map<
+    string,
+    { id: string; type: string; points: number }
+  >();
+  const optionMap = new Map<
+    string,
+    { id: string; questionId: string; isCorrect: boolean }
+  >();
+
+  for (const row of questionOptionRows) {
+    if (!questionMap.has(row.questionId)) {
+      questionMap.set(row.questionId, {
+        id: row.questionId,
+        type: row.questionType,
+        points: row.questionPoints,
+      });
+    }
+
+    if (row.optionId && row.optionQuestionId) {
+      optionMap.set(row.optionId, {
+        id: row.optionId,
+        questionId: row.optionQuestionId,
+        isCorrect: Boolean(row.optionIsCorrect),
+      });
+    }
+  }
+
+  const questionRows = Array.from(questionMap.values());
 
   const answerMap = new Map(
     body.answers.map((item) => [item.questionId, item]),
   );
-  const optionMap = new Map(optionRows.map((option) => [option.id, option]));
-
   let score = 0;
   const attemptId = randomUUID();
   const now = new Date();
@@ -308,77 +326,103 @@ export async function GET(
     attempt = matched;
   }
 
-  const totalPointsRows = await db
+  const reviewRows = await db
     .select({
-      total: sql<number>`coalesce(sum(${examQuestions.points}), 0)`,
+      questionId: examQuestions.id,
+      questionType: examQuestions.type,
+      questionPrompt: examQuestions.prompt,
+      questionPoints: examQuestions.points,
+      questionSortOrder: examQuestions.sortOrder,
+      questionCorrectText: examQuestions.correctText,
+      optionId: examOptions.id,
+      optionQuestionId: examOptions.questionId,
+      optionContent: examOptions.content,
+      optionIsCorrect: examOptions.isCorrect,
+      optionSortOrder: examOptions.sortOrder,
+      answerQuestionId: examAnswers.questionId,
+      answerSelectedOptionId: examAnswers.selectedOptionId,
+      answerEssayText: examAnswers.essayText,
+      answerIsCorrect: examAnswers.isCorrect,
+      answerPointsAwarded: examAnswers.pointsAwarded,
     })
     .from(examQuestions)
-    .where(eq(examQuestions.examId, exam.id));
+    .leftJoin(examOptions, eq(examOptions.questionId, examQuestions.id))
+    .leftJoin(
+      examAnswers,
+      and(
+        eq(examAnswers.questionId, examQuestions.id),
+        eq(examAnswers.attemptId, attempt.id),
+      ),
+    )
+    .where(eq(examQuestions.examId, exam.id))
+    .orderBy(asc(examQuestions.sortOrder), asc(examOptions.sortOrder));
 
-  const questionRows = await db
-    .select({
-      id: examQuestions.id,
-      type: examQuestions.type,
-      prompt: examQuestions.prompt,
-      points: examQuestions.points,
-      sortOrder: examQuestions.sortOrder,
-      correctText: examQuestions.correctText,
-    })
-    .from(examQuestions)
-    .where(eq(examQuestions.examId, exam.id));
+  const reviewQuestionMap = new Map<
+    string,
+    {
+      id: string;
+      type: string;
+      prompt: string;
+      points: number;
+      sortOrder: number;
+      correctEssay: string | null;
+      isCorrect: boolean | null;
+      pointsAwarded: number;
+      selectedOptionId: string | null;
+      essayAnswer: string | null;
+      options: Array<{
+        id: string;
+        questionId: string;
+        content: string;
+        isCorrect: boolean;
+        sortOrder: number;
+      }>;
+    }
+  >();
 
-  const questionIds = questionRows.map((question) => question.id);
-  const optionRows =
-    questionIds.length > 0
-      ? await db
-          .select({
-            id: examOptions.id,
-            questionId: examOptions.questionId,
-            content: examOptions.content,
-            isCorrect: examOptions.isCorrect,
-            sortOrder: examOptions.sortOrder,
-          })
-          .from(examOptions)
-          .where(inArray(examOptions.questionId, questionIds))
-      : [];
+  for (const row of reviewRows) {
+    if (!reviewQuestionMap.has(row.questionId)) {
+      reviewQuestionMap.set(row.questionId, {
+        id: row.questionId,
+        type: row.questionType,
+        prompt: row.questionPrompt,
+        points: row.questionPoints,
+        sortOrder: row.questionSortOrder,
+        correctEssay: row.questionCorrectText,
+        isCorrect: row.answerIsCorrect,
+        pointsAwarded: Number(row.answerPointsAwarded ?? 0),
+        selectedOptionId: row.answerSelectedOptionId,
+        essayAnswer: row.answerEssayText,
+        options: [],
+      });
+    }
 
-  const answerRows =
-    questionIds.length > 0
-      ? await db
-          .select({
-            questionId: examAnswers.questionId,
-            selectedOptionId: examAnswers.selectedOptionId,
-            essayText: examAnswers.essayText,
-            isCorrect: examAnswers.isCorrect,
-            pointsAwarded: examAnswers.pointsAwarded,
-          })
-          .from(examAnswers)
-          .where(eq(examAnswers.attemptId, attempt.id))
-      : [];
-
-  const optionById = new Map(optionRows.map((option) => [option.id, option]));
-  const optionsByQuestionId = new Map<string, typeof optionRows>();
-  for (const option of optionRows) {
-    const current = optionsByQuestionId.get(option.questionId) ?? [];
-    current.push(option);
-    optionsByQuestionId.set(option.questionId, current);
+    const current = reviewQuestionMap.get(row.questionId);
+    if (
+      current &&
+      row.optionId &&
+      row.optionQuestionId &&
+      row.optionContent !== null
+    ) {
+      current.options.push({
+        id: row.optionId,
+        questionId: row.optionQuestionId,
+        content: row.optionContent,
+        isCorrect: Boolean(row.optionIsCorrect),
+        sortOrder: row.optionSortOrder ?? 0,
+      });
+    }
   }
 
-  const answerByQuestionId = new Map(
-    answerRows.map((answer) => [answer.questionId, answer]),
-  );
-
-  const reviewQuestions = questionRows
-    .map((question) => {
-      const answer = answerByQuestionId.get(question.id);
-      const options = (optionsByQuestionId.get(question.id) ?? []).sort(
-        (a, b) => a.sortOrder - b.sortOrder,
-      );
-
-      const selectedOption = answer?.selectedOptionId
-        ? optionById.get(answer.selectedOptionId)
+  const reviewQuestions = Array.from(reviewQuestionMap.values()).map(
+    (question) => {
+      const selectedOption = question.selectedOptionId
+        ? question.options.find(
+            (option) => option.id === question.selectedOptionId,
+          )
         : null;
-      const correctOption = options.find((option) => option.isCorrect) ?? null;
+      const correctOption =
+        question.options.find((option) => option.isCorrect) ?? null;
 
       return {
         id: question.id,
@@ -386,17 +430,22 @@ export async function GET(
         prompt: question.prompt,
         points: question.points,
         sortOrder: question.sortOrder,
-        isCorrect: answer?.isCorrect ?? null,
-        pointsAwarded: Number(answer?.pointsAwarded ?? 0),
-        selectedOptionId: answer?.selectedOptionId ?? null,
+        isCorrect: question.isCorrect,
+        pointsAwarded: question.pointsAwarded,
+        selectedOptionId: question.selectedOptionId,
         selectedOptionContent: selectedOption?.content ?? null,
         correctOptionId: correctOption?.id ?? null,
         correctOptionContent: correctOption?.content ?? null,
-        essayAnswer: answer?.essayText ?? null,
-        correctEssay: question.correctText ?? null,
+        essayAnswer: question.essayAnswer,
+        correctEssay: question.correctEssay,
       };
-    })
-    .sort((a, b) => a.sortOrder - b.sortOrder);
+    },
+  );
+
+  const totalPoints = reviewQuestions.reduce(
+    (sum, question) => sum + question.points,
+    0,
+  );
 
   const attemptsUsed = attemptRows.length;
   const hasUnlimitedAttempts = exam.maxAttempts === 0;
@@ -437,13 +486,13 @@ export async function GET(
       index: attemptRows.findIndex((item) => item.id === attempt.id) + 1,
       attemptsUsed,
       remainingAttempts,
-      canRetry: hasUnlimitedAttempts || remainingAttempts! > 0,
+      canRetry: hasUnlimitedAttempts || (remainingAttempts ?? 0) > 0,
       isAutoSubmitted: Boolean(attempt.isAutoSubmitted),
       submissionReason: attempt.submissionReason,
       tabSwitchCount: Number(attempt.tabSwitchCount ?? 0),
       fullscreenExitCount: Number(attempt.fullscreenExitCount ?? 0),
     },
-    totalPoints: Number(totalPointsRows[0]?.total ?? 0),
+    totalPoints,
     reviewQuestions,
     attemptHistory,
   });

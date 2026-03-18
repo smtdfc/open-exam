@@ -1,4 +1,5 @@
 import {
+  index,
   mysqlTable,
   varchar,
   text,
@@ -79,64 +80,106 @@ export const exams = mysqlTable(
   },
   (table) => ({
     codeIndex: uniqueIndex("exams_code_unique").on(table.code),
+    creatorIndex: index("exams_creator_idx").on(table.creatorId),
   }),
 );
 
-export const examQuestions = mysqlTable("exam_questions", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  examId: varchar("exam_id", { length: 36 })
-    .notNull()
-    .references(() => exams.id),
-  type: varchar("type", { length: 20 }).notNull(),
-  prompt: text("prompt").notNull(),
-  points: int("points").notNull().default(1),
-  sortOrder: int("sort_order").notNull().default(0),
-  correctText: text("correct_text"),
-  createdAt: timestamp("created_at").notNull(),
-  updatedAt: timestamp("updated_at").notNull(),
-});
+export const examQuestions = mysqlTable(
+  "exam_questions",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    examId: varchar("exam_id", { length: 36 })
+      .notNull()
+      .references(() => exams.id),
+    type: varchar("type", { length: 20 }).notNull(),
+    prompt: text("prompt").notNull(),
+    points: int("points").notNull().default(1),
+    sortOrder: int("sort_order").notNull().default(0),
+    correctText: text("correct_text"),
+    createdAt: timestamp("created_at").notNull(),
+    updatedAt: timestamp("updated_at").notNull(),
+  },
+  (table) => ({
+    examSortIndex: index("exam_questions_exam_sort_idx").on(
+      table.examId,
+      table.sortOrder,
+    ),
+  }),
+);
 
-export const examOptions = mysqlTable("exam_options", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  questionId: varchar("question_id", { length: 36 })
-    .notNull()
-    .references(() => examQuestions.id),
-  content: text("content").notNull(),
-  isCorrect: boolean("is_correct").notNull().default(false),
-  sortOrder: int("sort_order").notNull().default(0),
-  createdAt: timestamp("created_at").notNull(),
-  updatedAt: timestamp("updated_at").notNull(),
-});
+export const examOptions = mysqlTable(
+  "exam_options",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    questionId: varchar("question_id", { length: 36 })
+      .notNull()
+      .references(() => examQuestions.id),
+    content: text("content").notNull(),
+    isCorrect: boolean("is_correct").notNull().default(false),
+    sortOrder: int("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at").notNull(),
+    updatedAt: timestamp("updated_at").notNull(),
+  },
+  (table) => ({
+    questionSortIndex: index("exam_options_question_sort_idx").on(
+      table.questionId,
+      table.sortOrder,
+    ),
+  }),
+);
 
-export const examAttempts = mysqlTable("exam_attempts", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  examId: varchar("exam_id", { length: 36 })
-    .notNull()
-    .references(() => exams.id),
-  userId: varchar("user_id", { length: 36 })
-    .notNull()
-    .references(() => user.id),
-  score: int("score"),
-  tabSwitchCount: int("tab_switch_count").notNull().default(0),
-  fullscreenExitCount: int("fullscreen_exit_count").notNull().default(0),
-  isAutoSubmitted: boolean("is_auto_submitted").notNull().default(false),
-  submissionReason: text("submission_reason"),
-  startedAt: timestamp("started_at").notNull(),
-  submittedAt: timestamp("submitted_at"),
-});
+export const examAttempts = mysqlTable(
+  "exam_attempts",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    examId: varchar("exam_id", { length: 36 })
+      .notNull()
+      .references(() => exams.id),
+    userId: varchar("user_id", { length: 36 })
+      .notNull()
+      .references(() => user.id),
+    score: int("score"),
+    tabSwitchCount: int("tab_switch_count").notNull().default(0),
+    fullscreenExitCount: int("fullscreen_exit_count").notNull().default(0),
+    isAutoSubmitted: boolean("is_auto_submitted").notNull().default(false),
+    submissionReason: text("submission_reason"),
+    startedAt: timestamp("started_at").notNull(),
+    submittedAt: timestamp("submitted_at"),
+  },
+  (table) => ({
+    examUserSubmittedIndex: index("exam_attempts_exam_user_submitted_idx").on(
+      table.examId,
+      table.userId,
+      table.submittedAt,
+    ),
+    examSubmittedIndex: index("exam_attempts_exam_submitted_idx").on(
+      table.examId,
+      table.submittedAt,
+    ),
+  }),
+);
 
-export const examAnswers = mysqlTable("exam_answers", {
-  id: varchar("id", { length: 36 }).primaryKey(),
-  attemptId: varchar("attempt_id", { length: 36 })
-    .notNull()
-    .references(() => examAttempts.id),
-  questionId: varchar("question_id", { length: 36 })
-    .notNull()
-    .references(() => examQuestions.id),
-  selectedOptionId: varchar("selected_option_id", { length: 36 }).references(
-    () => examOptions.id,
-  ),
-  essayText: text("essay_text"),
-  isCorrect: boolean("is_correct"),
-  pointsAwarded: int("points_awarded").notNull().default(0),
-});
+export const examAnswers = mysqlTable(
+  "exam_answers",
+  {
+    id: varchar("id", { length: 36 }).primaryKey(),
+    attemptId: varchar("attempt_id", { length: 36 })
+      .notNull()
+      .references(() => examAttempts.id),
+    questionId: varchar("question_id", { length: 36 })
+      .notNull()
+      .references(() => examQuestions.id),
+    selectedOptionId: varchar("selected_option_id", { length: 36 }).references(
+      () => examOptions.id,
+    ),
+    essayText: text("essay_text"),
+    isCorrect: boolean("is_correct"),
+    pointsAwarded: int("points_awarded").notNull().default(0),
+  },
+  (table) => ({
+    attemptQuestionIndex: index("exam_answers_attempt_question_idx").on(
+      table.attemptId,
+      table.questionId,
+    ),
+  }),
+);
