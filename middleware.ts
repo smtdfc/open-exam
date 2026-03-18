@@ -6,7 +6,8 @@ export async function middleware(request: NextRequest) {
   if (!sessionCookie) {
     if (
       request.nextUrl.pathname.startsWith("/dashboard") ||
-      request.nextUrl.pathname.startsWith("/profile")
+      request.nextUrl.pathname.startsWith("/profile") ||
+      request.nextUrl.pathname.startsWith("/exam")
     ) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
@@ -16,5 +17,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/profile/:path*"],
+  matcher: ["/dashboard/:path*", "/profile/:path*", "/exam/:path*"],
 };

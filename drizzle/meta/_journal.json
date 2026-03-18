@@ -8,6 +8,34 @@
       "when": 1773831867145,
       "tag": "0000_yummy_demogoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1773847732247,
+      "tag": "0001_happy_ronan",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1778846400000,
+      "tag": "0002_result_review_option",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1778920200000,
+      "tag": "0003_monitoring_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1779006600000,
+      "tag": "0004_utf8mb4_charset",
+      "breakpoints": true
     }
   ]
 }

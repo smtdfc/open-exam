@@ -1,0 +1,245 @@
+:root {
+  --main-bg: #ffffff;
+  --hover-bg: rgba(0, 0, 0, 0.06);
+  --accent-bg: rgba(79, 70, 229, 0.1);
+  --accent-color: #4f46e5;
+}
+
+.navbar {
+  width: 100%;
+  padding: 1rem;
+  box-shadow: 1px 1px 4px var(--hover-bg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  background-color: var(--main-bg);
+}
+
+.navbar-header {
+  display: flex;
+  column-gap: 10px;
+  align-items: center;
+}
+
+.navbar-items {
+  margin-left: auto;
+}
+.navbar-header button {
+  font-size: 16px;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.5s ease;
+}
+
+.navbar-header button:hover {
+  background-color: var(--hover-bg);
+}
+
+.navbar-header h3 {
+  font-size: 25px;
+}
+
+.avatar {
+  border: solid 2px transparent;
+  border-radius: 50%;
+  transition: all 0.5s ease;
+}
+
+.avatar:hover {
+  border: solid 2px var(--hover-bg);
+}
+
+.avatar img {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.sidebar-container {
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+  position: relative;
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+.sidebar-container .sidebar {
+  flex: 0 0 260px;
+}
+
+.sidebar-container .content {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar {
+  padding: 1rem;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-header {
+  display: flex;
+  column-gap: 10px;
+  align-items: center;
+}
+
+.sidebar-header button {
+  font-size: 16px;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.5s ease;
+}
+
+.sidebar-header button:hover {
+  background-color: var(--hover-bg);
+}
+
+.sidebar-header h3 {
+  font-size: 25px;
+}
+
+.sidebar-menu {
+  margin-top: 2rem;
+}
+
+.sidebar-menu ul {
+  list-style: none;
+}
+
+.sidebar-menu > ul > li {
+  margin-top: 5px;
+}
+
+.sidebar-menu li > a {
+  display: flex;
+  align-items: center;
+  column-gap: 10px;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.5s ease;
+}
+
+.sidebar-menu li > a > .sidebar-collapse-icon {
+  margin-left: auto;
+  width: 14px;
+  height: 14px;
+}
+
+.sidebar-menu li > a:hover {
+  background-color: var(--hover-bg);
+}
+
+.sidebar-menu li.active > a {
+  background-color: var(--accent-bg);
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.sidebar-menu > ul > li > ul {
+  margin-left: 2rem;
+  margin-top: 0.5rem;
+  display: none;
+}
+
+.sidebar-menu > ul > li.open > ul {
+  display: block;
+}
+
+.sidebar-menu > ul > li.open > a > .sidebar-collapse-icon {
+  transform: rotate(180deg);
+}
+
+.sidebar-menu > ul > li > ul > li.active > a {
+  background-color: transparent !important;
+  color: var(--accent-color);
+}
+
+.sidebar-menu-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 3px;
+}
+
+@media (min-width: 768px) {
+  .navbar .navbar-header {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .sidebar-container {
+    display: block;
+    min-height: auto;
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    border: 0;
+    background: rgba(15, 23, 42, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .sidebar-container .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 40;
+    height: 100vh;
+    width: min(82vw, 320px);
+    overflow-y: auto;
+    background: #ffffff;
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.2);
+    transform: translateX(-105%);
+    transition: transform 0.22s ease;
+    border-right: 1px solid rgba(15, 23, 42, 0.08);
+  }
+
+  .sidebar-container .content {
+    width: 100%;
+  }
+
+  .sidebar-container.mobile-open .sidebar {
+    transform: translateX(0);
+  }
+
+  .sidebar-container.mobile-open .sidebar-backdrop {
+    display: block;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .sidebar-header h3,
+  .navbar-header h3 {
+    font-size: 20px;
+  }
+
+  .sidebar-menu {
+    margin-top: 1rem;
+  }
+
+  .sidebar-menu > ul > li > ul {
+    margin-left: 1rem;
+  }
+
+  .navbar {
+    padding: 0.75rem;
+  }
+
+  .navbar-items {
+    margin-left: 0;
+  }
+}
