@@ -171,7 +171,7 @@ export async function GET(
       viewer: {
         attemptsUsed,
         remainingAttempts,
-        canRetry: hasUnlimitedAttempts || remainingAttempts > 0,
+        canRetry: hasUnlimitedAttempts || remainingAttempts! > 0,
         latestAttemptId: latestAttempt?.id ?? null,
         latestScore: latestAttempt?.score ?? null,
         canReviewResult: exam.allowResultReview,
