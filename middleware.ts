@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  const sessionCookie = request.cookies.get("better-auth.session_token");
+  const { pathname, origin } = request.nextUrl;
 
-  if (!sessionCookie) {
-    if (
-      request.nextUrl.pathname.startsWith("/dashboard") ||
-      request.nextUrl.pathname.startsWith("/profile") ||
-      request.nextUrl.pathname.startsWith("/exam")
-    ) {
+  const protectedPaths = ["/dashboard", "/profile", "/exam"];
+  const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
+
+  if (isProtected) {
+    const sessionRes = await fetch(`${origin}/api/auth/get-session`, {
+      headers: {
+        cookie: request.headers.get("cookie") || "",
+      },
+    });
+
+    const session = await sessionRes.json();
+
+    if (!session || !session.user) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
   }
