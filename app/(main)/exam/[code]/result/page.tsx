@@ -1,5 +1,6 @@
 "use client";
 
+import PageLoading from "@/components/ui/page-loading";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -102,7 +103,7 @@ export default function ExamResultPage({
   }, [params, searchParams]);
 
   if (loading) {
-    return <div className="p-6 text-slate-500">Đang tải kết quả...</div>;
+    return <PageLoading label="Đang tải kết quả..." compact />;
   }
 
   if (!result) {

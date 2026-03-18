@@ -1,5 +1,6 @@
 "use client";
 
+import PageLoading from "@/components/ui/page-loading";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -187,9 +188,7 @@ export default function ExamHistoryPage() {
   };
 
   if (loading) {
-    return (
-      <div className="p-6 text-slate-500">Đang tải lịch sử làm bài...</div>
-    );
+    return <PageLoading label="Đang tải lịch sử làm bài..." compact />;
   }
 
   return (

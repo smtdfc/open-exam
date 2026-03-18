@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDuration } from "@/lib/exam";
+import PageLoading from "@/components/ui/page-loading";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -273,7 +274,7 @@ export default function ExamByCodePage({
   }, [exam, hasStarted, submitting]);
 
   if (loading) {
-    return <div className="p-6 text-slate-500">Đang tải bài thi...</div>;
+    return <PageLoading label="Đang tải bài thi..." compact />;
   }
 
   if (!exam) {

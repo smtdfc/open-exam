@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type ChangeEvent, useRef, useState } from "react";
 import {
   Plus,
   Trash2,
@@ -13,6 +13,8 @@ import {
   ShieldCheck,
   Eye,
   Trophy,
+  FileJson,
+  Upload,
 } from "lucide-react";
 import Button from "@/components/ui/button";
 
@@ -22,6 +24,41 @@ type Question = {
   answers: string[];
   correct: number | string;
   points: number;
+};
+
+const DEFAULT_QUESTION: Question = {
+  type: "multiple-choice",
+  title: "",
+  answers: ["", "", "", ""],
+  correct: 0,
+  points: 10,
+};
+
+const JSON_TEMPLATE = {
+  questions: [
+    {
+      type: "multiple-choice",
+      title: "2 + 2 bằng bao nhiêu?",
+      answers: ["1", "2", "3", "4"],
+      correct: 3,
+      points: 10,
+    },
+    {
+      type: "essay",
+      title: "Nêu định nghĩa đạo hàm.",
+      answers: [],
+      correct: "Đạo hàm của hàm số tại một điểm là giới hạn tỉ số...",
+      points: 15,
+    },
+  ],
+};
+
+type ImportedQuestion = {
+  type?: unknown;
+  title?: unknown;
+  answers?: unknown;
+  correct?: unknown;
+  points?: unknown;
 };
 
 export default function CreateExamPage() {
@@ -40,29 +77,133 @@ export default function CreateExamPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [createdCode, setCreatedCode] = useState("");
+  const [importMessage, setImportMessage] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // 2. State cho danh sách câu hỏi
-  const [questions, setQuestions] = useState<Question[]>([
-    {
-      type: "multiple-choice",
-      title: "",
-      answers: ["", "", "", ""],
-      correct: 0,
-      points: 10,
-    },
-  ]);
+  const [questions, setQuestions] = useState<Question[]>([DEFAULT_QUESTION]);
 
   const addQuestion = () => {
-    setQuestions([
-      ...questions,
-      {
+    setQuestions([...questions, { ...DEFAULT_QUESTION }]);
+  };
+
+  const normalizeImportedQuestion = (
+    raw: ImportedQuestion,
+  ): Question | null => {
+    const rawType = raw.type === "essay" ? "essay" : "multiple-choice";
+    const title = typeof raw.title === "string" ? raw.title.trim() : "";
+    const points = Number.parseInt(String(raw.points ?? 0), 10);
+
+    if (!title || !Number.isFinite(points) || points <= 0) {
+      return null;
+    }
+
+    if (rawType === "multiple-choice") {
+      const answers = Array.isArray(raw.answers)
+        ? raw.answers
+            .map((answer) =>
+              typeof answer === "string" ? answer.trim() : String(answer),
+            )
+            .filter((answer) => answer.length > 0)
+        : [];
+
+      if (answers.length < 2) {
+        return null;
+      }
+
+      const maxCorrectIndex = answers.length - 1;
+      const correctRaw = Number.parseInt(String(raw.correct ?? 0), 10);
+      const correct = Number.isFinite(correctRaw)
+        ? Math.min(Math.max(correctRaw, 0), maxCorrectIndex)
+        : 0;
+
+      return {
         type: "multiple-choice",
-        title: "",
-        answers: ["", "", "", ""],
-        correct: 0,
-        points: 10,
-      },
-    ]);
+        title,
+        answers,
+        correct,
+        points,
+      };
+    }
+
+    return {
+      type: "essay",
+      title,
+      answers: [],
+      correct: typeof raw.correct === "string" ? raw.correct.trim() : "",
+      points,
+    };
+  };
+
+  const handleImportQuestions = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) {
+      return;
+    }
+
+    setErrorMessage("");
+    setImportMessage("");
+
+    try {
+      const content = await selectedFile.text();
+      const parsed = JSON.parse(content) as
+        | ImportedQuestion[]
+        | { questions?: ImportedQuestion[] };
+
+      const rawQuestions = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed.questions)
+          ? parsed.questions
+          : [];
+
+      if (rawQuestions.length === 0) {
+        setErrorMessage(
+          "File JSON không có dữ liệu câu hỏi. Hãy dùng mảng [] hoặc object có key questions.",
+        );
+        return;
+      }
+
+      const normalized = rawQuestions
+        .map((item) => normalizeImportedQuestion(item))
+        .filter((item): item is Question => item !== null);
+
+      if (normalized.length === 0) {
+        setErrorMessage(
+          "Không tìm thấy câu hỏi hợp lệ trong file. Vui lòng kiểm tra lại định dạng JSON.",
+        );
+        return;
+      }
+
+      setQuestions(normalized);
+      setCreatedCode("");
+
+      const skipped = rawQuestions.length - normalized.length;
+      setImportMessage(
+        skipped > 0
+          ? `Đã nhập ${normalized.length} câu hỏi. Bỏ qua ${skipped} câu không hợp lệ.`
+          : `Đã nhập thành công ${normalized.length} câu hỏi từ JSON.`,
+      );
+    } catch {
+      setErrorMessage(
+        "Không đọc được file JSON. Vui lòng kiểm tra cú pháp JSON trước khi tải lên.",
+      );
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    const blob = new Blob([JSON.stringify(JSON_TEMPLATE, null, 2)], {
+      type: "application/json;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "open-exam-question-template.json";
+    anchor.click();
+    URL.revokeObjectURL(url);
   };
 
   const removeQuestion = (index: number) => {
@@ -161,6 +302,12 @@ export default function CreateExamPage() {
         <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
           Tạo bài thành công. Mã bài thi:{" "}
           <span className="font-bold">{createdCode}</span>
+        </p>
+      ) : null}
+
+      {importMessage ? (
+        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          {importMessage}
         </p>
       ) : null}
 
@@ -365,6 +512,94 @@ export default function CreateExamPage() {
               * Phát hiện chuyển tab, thoát toàn màn hình.
             </p>
           </div>
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <FileJson size={20} className="text-indigo-600" /> Nhập câu hỏi từ
+              file JSON
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Hỗ trợ 2 dạng: mảng câu hỏi trực tiếp{" "}
+              <span className="font-semibold">[]</span> hoặc object có key{" "}
+              <span className="font-semibold">questions</span>.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+            >
+              <Upload size={16} /> Tải file JSON
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadTemplate}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Tải file mẫu
+            </button>
+          </div>
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={(event) => void handleImportQuestions(event)}
+        />
+
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-semibold text-slate-700">
+            Định dạng JSON yêu cầu:
+          </p>
+          <pre className="mt-2 overflow-auto rounded-lg bg-slate-900 p-3 text-xs text-slate-100">
+            {`{
+  "questions": [
+    {
+      "type": "multiple-choice",
+      "title": "2 + 2 bằng bao nhiêu?",
+      "answers": ["1", "2", "3", "4"],
+      "correct": 3,
+      "points": 10
+    },
+    {
+      "type": "essay",
+      "title": "Nêu định nghĩa đạo hàm.",
+      "answers": [],
+      "correct": "Đạo hàm là...",
+      "points": 15
+    }
+  ]
+}`}
+          </pre>
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-slate-600">
+            <li>
+              <span className="font-semibold">type</span>: "multiple-choice"
+              hoặc "essay"
+            </li>
+            <li>
+              <span className="font-semibold">title</span>: nội dung câu hỏi
+            </li>
+            <li>
+              <span className="font-semibold">answers</span>: bắt buộc với trắc
+              nghiệm, tối thiểu 2 đáp án
+            </li>
+            <li>
+              <span className="font-semibold">correct</span>: với trắc nghiệm là
+              index đáp án đúng (bắt đầu từ 0), với tự luận là đáp án mẫu
+            </li>
+            <li>
+              <span className="font-semibold">points</span>: số điểm của câu
+              hỏi, phải lớn hơn 0
+            </li>
+          </ul>
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import PageLoading from "@/components/ui/page-loading";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -71,7 +72,7 @@ export default function ExamStatisticsPage() {
   };
 
   if (loading) {
-    return <div className="p-6 text-slate-500">Đang tải thống kê...</div>;
+    return <PageLoading label="Đang tải thống kê..." compact />;
   }
 
   return (
