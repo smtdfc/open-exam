@@ -1,15 +1,15 @@
 import {
   index,
-  mysqlTable,
+  pgTable,
   varchar,
   text,
   timestamp,
   boolean,
-  int,
+  integer,
   uniqueIndex,
-} from "drizzle-orm/mysql-core";
+} from "drizzle-orm/pg-core";
 
-export const user = mysqlTable("user", {
+export const user = pgTable("user", {
   id: varchar("id", { length: 36 }).primaryKey(),
   name: text("name").notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
@@ -19,7 +19,7 @@ export const user = mysqlTable("user", {
   updatedAt: timestamp("updated_at").notNull(),
 });
 
-export const session = mysqlTable("session", {
+export const session = pgTable("session", {
   id: varchar("id", { length: 36 }).primaryKey(),
   expiresAt: timestamp("expires_at").notNull(),
   token: varchar("token", { length: 255 }).notNull().unique(),
@@ -32,7 +32,7 @@ export const session = mysqlTable("session", {
     .references(() => user.id),
 });
 
-export const account = mysqlTable("account", {
+export const account = pgTable("account", {
   id: varchar("id", { length: 36 }).primaryKey(),
   accountId: text("account_id").notNull(),
   providerId: text("provider_id").notNull(),
@@ -50,7 +50,7 @@ export const account = mysqlTable("account", {
   updatedAt: timestamp("updated_at").notNull(),
 });
 
-export const verification = mysqlTable("verification", {
+export const verification = pgTable("verification", {
   id: varchar("id", { length: 36 }).primaryKey(),
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
@@ -59,15 +59,15 @@ export const verification = mysqlTable("verification", {
   updatedAt: timestamp("updated_at"),
 });
 
-export const exams = mysqlTable(
+export const exams = pgTable(
   "exams",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
     code: varchar("code", { length: 12 }).notNull(),
     title: varchar("title", { length: 255 }).notNull(),
     description: text("description"),
-    durationMinutes: int("duration_minutes").notNull(),
-    maxAttempts: int("max_attempts").notNull().default(1),
+    durationMinutes: integer("duration_minutes").notNull(),
+    maxAttempts: integer("max_attempts").notNull().default(1),
     allowResultReview: boolean("allow_result_review").notNull().default(false),
     isMonitored: boolean("is_monitored").notNull().default(false),
     recordBehavior: boolean("record_behavior").notNull().default(false),
@@ -84,7 +84,7 @@ export const exams = mysqlTable(
   }),
 );
 
-export const examQuestions = mysqlTable(
+export const examQuestions = pgTable(
   "exam_questions",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -93,8 +93,8 @@ export const examQuestions = mysqlTable(
       .references(() => exams.id),
     type: varchar("type", { length: 20 }).notNull(),
     prompt: text("prompt").notNull(),
-    points: int("points").notNull().default(1),
-    sortOrder: int("sort_order").notNull().default(0),
+    points: integer("points").notNull().default(1),
+    sortOrder: integer("sort_order").notNull().default(0),
     correctText: text("correct_text"),
     createdAt: timestamp("created_at").notNull(),
     updatedAt: timestamp("updated_at").notNull(),
@@ -107,7 +107,7 @@ export const examQuestions = mysqlTable(
   }),
 );
 
-export const examOptions = mysqlTable(
+export const examOptions = pgTable(
   "exam_options",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -116,7 +116,7 @@ export const examOptions = mysqlTable(
       .references(() => examQuestions.id),
     content: text("content").notNull(),
     isCorrect: boolean("is_correct").notNull().default(false),
-    sortOrder: int("sort_order").notNull().default(0),
+    sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at").notNull(),
     updatedAt: timestamp("updated_at").notNull(),
   },
@@ -128,7 +128,7 @@ export const examOptions = mysqlTable(
   }),
 );
 
-export const examAttempts = mysqlTable(
+export const examAttempts = pgTable(
   "exam_attempts",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -138,9 +138,9 @@ export const examAttempts = mysqlTable(
     userId: varchar("user_id", { length: 36 })
       .notNull()
       .references(() => user.id),
-    score: int("score"),
-    tabSwitchCount: int("tab_switch_count").notNull().default(0),
-    fullscreenExitCount: int("fullscreen_exit_count").notNull().default(0),
+    score: integer("score"),
+    tabSwitchCount: integer("tab_switch_count").notNull().default(0),
+    fullscreenExitCount: integer("fullscreen_exit_count").notNull().default(0),
     isAutoSubmitted: boolean("is_auto_submitted").notNull().default(false),
     submissionReason: text("submission_reason"),
     startedAt: timestamp("started_at").notNull(),
@@ -159,7 +159,7 @@ export const examAttempts = mysqlTable(
   }),
 );
 
-export const examAnswers = mysqlTable(
+export const examAnswers = pgTable(
   "exam_answers",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -174,7 +174,7 @@ export const examAnswers = mysqlTable(
     ),
     essayText: text("essay_text"),
     isCorrect: boolean("is_correct"),
-    pointsAwarded: int("points_awarded").notNull().default(0),
+    pointsAwarded: integer("points_awarded").notNull().default(0),
   },
   (table) => ({
     attemptQuestionIndex: index("exam_answers_attempt_question_idx").on(
