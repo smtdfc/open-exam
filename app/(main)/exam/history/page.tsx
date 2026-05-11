@@ -267,6 +267,14 @@ export default function ExamHistoryPage() {
               >
                 Làm lại bài này
               </Link>
+              {group.attempts.some((item) => item.isOwner) ? (
+                <Link
+                  href={`/exam/${group.examCode}/edit`}
+                  className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
+                >
+                  Sửa đề
+                </Link>
+              ) : null}
               <button
                 type="button"
                 onClick={() => handleCopyLink(group.examCode)}

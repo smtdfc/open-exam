@@ -168,6 +168,12 @@ export default function ExamListPage() {
                 >
                   Xem và làm thử
                 </Link>
+                <Link
+                  href={`/exam/${exam.code}/edit`}
+                  className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
+                >
+                  Sửa đề
+                </Link>
                 <button
                   type="button"
                   onClick={() => handleCopyLink(exam.code)}

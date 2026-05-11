@@ -44,6 +44,8 @@ type ExamPayload = {
     latestAttemptId: string | null;
     latestScore: number | null;
     canReviewResult: boolean;
+    isOwner: boolean;
+    canEditQuestions: boolean;
   };
 };
 
@@ -341,6 +343,14 @@ export default function ExamByCodePage({
             <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700">
               Bài này không cho phép xem lại kết quả cũ.
             </p>
+          ) : null}
+          {exam.viewer.isOwner ? (
+            <Link
+              href={`/exam/${exam.code}/edit`}
+              className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100"
+            >
+              Sửa đề
+            </Link>
           ) : null}
         </div>
       </div>
